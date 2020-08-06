@@ -23,7 +23,7 @@
 <div class="container">
     <div>
         <label>Include components amount</label>
-        <input id="incValue" type="number" value="4" />
+        <input id="incValue" type="number" value="6" />
     </div>
     <div>
         <label>Exclude components amount</label>
@@ -481,13 +481,14 @@ namespace Leopotam.Ecs {
 <% for (let ii = 1; ii <= i; ii++) { -%>
             var allow<%=ii%> = _allow<%=ii%>;
 <% } -%>
-            for (int i = 0, iMax = entityData.ComponentsCountX2; i < iMax; i += 2) {
+            for (int i = 0, iMax = entityData.ComponentsCountX2, left = <%=i%>; left > 0 && i < iMax; i += 2) {
                 var typeIdx = entityData.Components[i];
                 var itemIdx = entityData.Components[i + 1];
 <% for (let ii = 1; ii <= i; ii++) { -%>
                 if (allow<%=ii%> && typeIdx == EcsComponentType<Inc<%=ii%>>.TypeIndex) {
                     _get<%=ii%>[EntitiesCount] = itemIdx;
                     allow<%=ii%> = false;
+                    left--;
                 }
 <% } -%>
             }
