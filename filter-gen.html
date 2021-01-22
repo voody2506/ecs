@@ -103,6 +103,12 @@ namespace Leopotam.Ecs {
             EntitiesMap = new Dictionary<int, int> (EntitiesCacheSize);
             _delayedOps = new DelayedOp[EntitiesCacheSize];
         }
+        
+        /// <summary>
+        /// Remove subscription from component pools.
+        /// </summary>
+        public abstract void Destroy ();
+        
 #if DEBUG
         public Dictionary<int, int> GetInternalEntitiesMap () {
             return EntitiesMap;
@@ -365,7 +371,7 @@ namespace Leopotam.Ecs {
 #if UNITY_2019_1_OR_NEWER
     [UnityEngine.Scripting.Preserve]
 #endif
-    public class EcsFilter<<% for (let ii = 1; ii <= i; ii++) { %><% if (ii > 1) { %>, <% } %>Inc<%=ii%><% } %>> : EcsFilter
+    public class EcsFilter<<% for (let ii = 1; ii <= i; ii++) { %><% if (ii > 1) { %>, <% } %>Inc<%=ii%><% } %>> : EcsFilter, IEcsComponentPoolResizeListener
 <% for (let ii = 1; ii <= i; ii++) { -%>
         where Inc<%=ii%> : struct<% if (ii == i) { %> {<% } %>
 <% } -%>
@@ -379,12 +385,13 @@ namespace Leopotam.Ecs {
 
 <% for (let ii = 1; ii <= i; ii++) { -%>
         readonly EcsComponentPool<Inc<%=ii%>> _pool<%=ii%>;
+        Inc<%=ii%>[] _pool<%=ii%>Items;
 <% } -%>
 <% for (let ii = 1; ii <= i; ii++) { -%>
 
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public ref Inc<%=ii%> Get<%=ii%> (in int idx) {
-            return ref _pool<%=ii%>.Items[_get<%=ii%>[idx]];
+            return ref _pool<%=ii%>Items[_get<%=ii%>[idx]];
         }
 <% } -%>
 <% for (let ii = 1; ii <= i; ii++) { -%>
@@ -445,6 +452,8 @@ namespace Leopotam.Ecs {
 <% } -%>
 <% for (let ii = 1; ii <= i; ii++) { -%>
             _pool<%=ii%> = world.GetPool<Inc<%=ii%>> ();
+            _pool<%=ii%>.AddResizeListener (this);
+            _pool<%=ii%>Items = _pool<%=ii%>.Items;
 <% } -%>
 <% for (let ii = 1; ii <= i; ii++) { -%>
             _get<%=ii%> = _allow<%=ii%> ? new int[EntitiesCacheSize] : null;
@@ -460,12 +469,28 @@ namespace Leopotam.Ecs {
 <% } -%>
             };
         }
+        
+        /// <summary>
+        /// For internal use.
+        /// </summary>
+        public override void Destroy () {
+<% for (let ii = 1; ii <= i; ii++) { -%>
+            _pool<%=ii%>.RemoveResizeListener (this);
+<% } -%>
+        }
+        
+        /// <summary>
+        /// For internal use.
+        /// </summary>
+        public void OnComponentPoolResize () {
+<% for (let ii = 1; ii <= i; ii++) { -%>
+            _pool<%=ii%>Items = _pool<%=ii%>.Items;
+<% } -%>
+        }
 
         /// <summary>
-        /// Event for adding compatible entity to filter.
-        /// Warning: Don't call manually!
+        /// For internal use.
         /// </summary>
-        /// <param name="entity">Entity.</param>
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public override void OnAddEntity (in EcsEntity entity) {
             if (AddDelayedOp (true, entity)) { return; }
@@ -503,10 +528,8 @@ namespace Leopotam.Ecs {
         }
 
         /// <summary>
-        /// Event for removing non-compatible entity to filter.
-        /// Warning: Don't call manually!
+        /// For internal use.
         /// </summary>
-        /// <param name="entity">Entity.</param>
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public override void OnRemoveEntity (in EcsEntity entity) {
             if (AddDelayedOp (false, entity)) { return; }
